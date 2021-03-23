@@ -16,9 +16,11 @@ class CNF:
             #p cnf numvars, numclauses
             clause_line = f.readline().strip().split()
             while clause_line:
-                self.clauses.append(clause_line[:-1])
+                clause_line = sorted(clause_line[:-1], key=lambda clause: int(clause.lstrip("-"))) #Keep vars sorted 
+                #TODO: Think which advantages can give us keeping sorted the vars of the clauses 
+                self.clauses.append(clause_line)
                 clause_line = f.readline().strip().split()
-    
+        print(self.clauses)
     def __str__(self):
         return "name: %s, num_vars: %i, num_clauses: %i" % (self.name, self.num_vars, self.num_clauses) 
     
