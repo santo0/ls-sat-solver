@@ -18,7 +18,7 @@ class CNF:
             while clause_line:
                 clause_line = sorted(clause_line[:-1], key=lambda clause: int(clause.lstrip("-"))) #Keep vars sorted 
                 #TODO: Think which advantages can give us keeping sorted the vars of the clauses 
-                self.clauses.append(clause_line)
+                self.clauses.append([int(cl) for cl in clause_line])
                 clause_line = f.readline().strip().split()
         print(self.clauses)
     def __str__(self):
