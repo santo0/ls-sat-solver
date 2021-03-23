@@ -30,6 +30,7 @@ class GSAT:
                     return self._interpretation
                 var_scores = self._get_flipped_vars_scores()
                 p = self._get_var_with_best_score(var_scores)
+                print(p)
                 self._interpretation = self._flip_var(p)
         return None
 
@@ -38,7 +39,7 @@ class GSAT:
         index = 0
         for i in range(1, self._formula.num_vars):
             score = var_scores[i]
-            if score < best_score:
+            if best_score < score:
                 best_score = score
                 index = i
         return index + 1
@@ -58,18 +59,20 @@ class GSAT:
     def _get_flipped_vars_scores(self):
         scores = [0 for _ in range(self._formula.num_vars)]
         for val in self._interpretation:
+            fval = -val
             for clause in self._formula.clauses:
-                fval = -val
                 length = len(clause)
                 for literal in clause:
                     if literal == fval:
                         break
                     else:
                         length -= 1
-                if length == 0:
-                    scores[abs(val) - 1] += 1
+                if length != 0:
+                    scores[abs(val) - 1] += 1   
+                    #TODO: Possible modificacio: parar de contar si es supera el minim actual
+        print(scores)
         return scores
-
+    #TODO: IDEA: guardar l'ultima variable que se li ha fet flip, per a no entrar en un bucle. 
     def _flip_var(self, var):
         new_interp = copy(self._interpretation)
         new_interp[var-1] *= -1
@@ -85,7 +88,7 @@ class GSAT:
             sys.stdout.write("v %s\n" % " ".join(
                 [str(cl) for cl in self._interpretation]))
         else:
-            sys.stdout.write("s UNSATISFIABLE\n")
+            sys.stdout.write("s IDK\n")
 
 
 if __name__ == "__main__":
@@ -97,6 +100,6 @@ if __name__ == "__main__":
     if not os.path.isfile(cnf_path):
         sys.exit("ERROR: CNF file %s does not exist." % cnf_path)
     # "./benchmarks/10_20_3__1.cnf"
-    solver = GSAT(9223372036854775807, 100, CNF(cnf_path))
+    solver = GSAT(100, 100, CNF(cnf_path))
     solver.solve()
     solver.print_output()
