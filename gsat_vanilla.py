@@ -20,72 +20,66 @@ class GSAT:
     def solve(self):
         for _ in range(self.max_tries):
             interpretation = self.get_random_interpretation()
+            print(interpretation)
             for _ in range(self.max_flips):
                 if self.satisfies(interpretation):
                     return interpretation
-                # list of values 1 to n : n is number of variables
                 var_scores = self.get_flipped_vars_scores(interpretation)
-                #print(var_scores)
-                #p = choice(var_scores)
-                p = randint(1, self.formula.num_vars)
+                p = self.get_var_with_best_score(var_scores)
                 interpretation = self.flip_var(interpretation, p)
         return None
 
+    def get_var_with_best_score(self, var_scores):
+        best_score = var_scores[0]
+        index = 0
+        for i in range(1, self.formula.num_vars):
+            score = var_scores[i]
+            if score < best_score:
+                best_score = score
+                index = i
+        return index + 1
+
     def satisfies(self, interpretation):
-        #print(interpretation)
-        #print(self.formula)
         for clause in self.formula.clauses:
-            sat_clause = False
-            #print(clause)
+            length = len(clause)
             for literal in clause:
-                pos = int(literal.lstrip('-')) - 1
-                interp = interpretation[pos]
-                if literal[0] == "-":
-                    literal_value = 0
+                if literal == interpretation[abs(literal) - 1]:
+                    break
                 else:
-                    literal_value = 1
-                sat_clause = sat_clause or (interp == literal_value)
-                #if interp != literal_value:
-                    #print("Fails on %i (%s)" % (interp, literal))
-            #print("BYE")
-            if not sat_clause:
-                #print(clause, interpretation)
+                    length -= 1
+            if length == 0:
                 return False
         return True
 
     def get_flipped_vars_scores(self, interpretation):
         scores = [0 for _ in range(self.formula.num_vars)]
-        for pos, val in enumerate(interpretation):
+        for val in interpretation:
             for clause in self.formula.clauses:
-                sat_clause = False
+                fval = -val
+                length = len(clause)
                 for literal in clause:
-                    var = int(literal.lstrip('-'))
-                    if var == pos + 1:
-                        if literal[0] == "-":
-                            literal_value = 0
-                        else:
-                            literal_value = 1
-                        sat_clause = sat_clause or (
-                            ((val + 1) % 2) == literal_value)
-                if not sat_clause:
-                    scores[pos] += 1
+                    if literal == fval:
+                        break
+                    else:
+                        length -= 1
+                if length == 0:
+                    scores[abs(val) - 1] += 1
         return scores
 
     def flip_var(self, interpretation, var):
-        interp = copy(interpretation)
-        #print(var)
-        interp[var-1] = (interp[var-1]+1) % 2
-        return interp
+        new_interp = copy(interpretation)
+        new_interp[var-1] *= -1
+        return new_interp
 
     def get_random_interpretation(self):
         # 0 False, 1 True
-        return [randint(0, 1) for _ in range(self.formula.num_vars)]
+        return [i if randint(0, 1) else -i for i in range(1, self.formula.num_vars + 1)]
 
 
 if __name__ == "__main__":
     print("GSAT vanilla")
-    cnf_path = "./benchmarks/100_400_3__1.cnf"
+    cnf_path = "./benchmarks/10_20_3__1.cnf"
     cnf = CNF(cnf_path)
-    solver = GSAT(100, 100, cnf)
+    solver = GSAT(20, 20, cnf)
     solution = solver.solve()
     print("SOLUTION: ", solution)
