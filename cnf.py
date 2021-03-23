@@ -20,7 +20,6 @@ class CNF:
                 #TODO: Think which advantages can give us keeping sorted the vars of the clauses 
                 self.clauses.append([int(cl) for cl in clause_line])
                 clause_line = f.readline().strip().split()
-        print(self.clauses)
     def __str__(self):
         return "name: %s, num_vars: %i, num_clauses: %i" % (self.name, self.num_vars, self.num_clauses) 
     
