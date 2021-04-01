@@ -1,4 +1,3 @@
-
 #!/usr/bin/python3
 
 # Libraries
@@ -14,7 +13,7 @@ import sys
 # De moment llista de llistes de caracters
 
 
-class Walksat:
+class GSAT:
     def __init__(self, max_flips, max_tries, formula):
         self._max_tries = max_tries
         self._max_flips = max_flips
@@ -29,17 +28,81 @@ class Walksat:
                 if self._interpretation_satisfies():
                     self._sat = True
                     return self._interpretation
-                var_scores = self._get_flipped_vars_scores()
-                p = self._get_var_with_best_score(var_scores)
+                C = self._get_clause_not_satisfied_by_interp()
+                S = self._get_vars_in_clause(C)
+                b, b_var = self._get_var_min_break(S)
+                prob = randint(0, 1) #! Parametizable.
+                if b > 0 and prob:
+                    p = choice(S)
+                else:
+                    p = b_var
                 self._interpretation = self._flip_var(p)
+
         return None
+
+    def _get_clause_not_satisfied_by_interp(self):#! Hauria de fer que agafes una clausula random, perq sino les clausules del principi tenen preferencia a ser escollides
+        for clause in self._formula.clauses:
+            length = len(clause)
+            for literal in clause:
+                if literal == self._interpretation[abs(literal) - 1]:
+                    break
+                else:
+                    length -= 1
+            if length == 0:
+                return clause
+        return None
+
+
+    def _get_vars_in_clause(self, clause):
+        return [abs(var) for var in clause]
+
+    def _get_var_min_break(self, vars):
+        #unsat_clauses = self._get_num_unsat_clauses()
+        vars_break = {}
+        for var in vars:
+            vars_break[var] = 0
+        for var in vars:
+            for clause in self._formula.clauses:
+                length = len(clause)
+                for literal in clause:
+                    if abs(literal) == var:
+                        if literal != var:
+                            break
+                        else:
+                            length -= 1
+                    else:
+                        if literal == self._interpretation[abs(literal) - 1]:
+                            break
+                        else:
+                            length -= 1
+                if length == 0:
+                    vars_break[var] += 1
+        min_var = min(vars_break, key=vars_break.get) 
+        return vars_break[min_var], min_var
+
+
+#despues - antes
+
+
+    def _get_num_unsat_clauses(self):
+        counter = 0
+        for clause in self._formula.clauses:
+            length = len(clause)
+            for literal in clause:
+                if literal == self._interpretation[abs(literal) - 1]:
+                    break
+                else:
+                    length -= 1
+            if length == 0:
+                counter += 1
+        return counter
 
     def _get_var_with_best_score(self, var_scores):
         best_score = var_scores[0]
         index = 0
         for i in range(1, self._formula.num_vars):
             score = var_scores[i]
-            if score < best_score:
+            if best_score < score:
                 best_score = score
                 index = i
         return index + 1
@@ -59,18 +122,20 @@ class Walksat:
     def _get_flipped_vars_scores(self):
         scores = [0 for _ in range(self._formula.num_vars)]
         for val in self._interpretation:
+            fval = -val
             for clause in self._formula.clauses:
-                fval = -val
                 length = len(clause)
                 for literal in clause:
                     if literal == fval:
                         break
                     else:
                         length -= 1
-                if length == 0:
-                    scores[abs(val) - 1] += 1
+                if length != 0:
+                    scores[abs(val) - 1] += 1   
+                    #TODO: Possible modificacio: parar de contar si es supera el minim actual
+        print(scores)
         return scores
-
+    #TODO: IDEA: guardar l'ultima variable que se li ha fet flip, per a no entrar en un bucle. 
     def _flip_var(self, var):
         new_interp = copy(self._interpretation)
         new_interp[var-1] *= -1
@@ -86,7 +151,7 @@ class Walksat:
             sys.stdout.write("v %s\n" % " ".join(
                 [str(cl) for cl in self._interpretation]))
         else:
-            sys.stdout.write("s UNSATISFIABLE\n")
+            sys.stdout.write("s IDK\n")
 
 
 if __name__ == "__main__":
@@ -98,6 +163,6 @@ if __name__ == "__main__":
     if not os.path.isfile(cnf_path):
         sys.exit("ERROR: CNF file %s does not exist." % cnf_path)
     # "./benchmarks/10_20_3__1.cnf"
-    solver = Walksat(9223372036854775807, 100, CNF(cnf_path))
+    solver = GSAT(100, 100, CNF(cnf_path))
     solver.solve()
     solver.print_output()
