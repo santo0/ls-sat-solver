@@ -97,16 +97,6 @@ class GSAT:
                 counter += 1
         return counter
 
-    def _get_var_with_best_score(self, var_scores):
-        best_score = var_scores[0]
-        index = 0
-        for i in range(1, self._formula.num_vars):
-            score = var_scores[i]
-            if best_score < score:
-                best_score = score
-                index = i
-        return index + 1
-
     def _interpretation_satisfies(self):
         for clause in self._formula.clauses:
             length = len(clause)
@@ -118,28 +108,6 @@ class GSAT:
             if length == 0:
                 return False
         return True
-
-    def _get_flipped_vars_scores(self):
-        scores = [0 for _ in range(self._formula.num_vars)]
-        for val in self._interpretation:
-            fval = -val
-            for clause in self._formula.clauses:
-                length = len(clause)
-                for literal in clause:
-                    if literal == fval:
-                        break
-                    else:
-                        length -= 1
-                if length != 0:
-                    scores[abs(val) - 1] += 1   
-                    #TODO: Possible modificacio: parar de contar si es supera el minim actual
-        print(scores)
-        return scores
-    #TODO: IDEA: guardar l'ultima variable que se li ha fet flip, per a no entrar en un bucle. 
-    def _flip_var(self, var):
-        new_interp = copy(self._interpretation)
-        new_interp[var-1] *= -1
-        return new_interp
 
     def _get_random_interpretation(self):
         return [i if randint(0, 1) else -i for i in range(1, self._formula.num_vars + 1)]
