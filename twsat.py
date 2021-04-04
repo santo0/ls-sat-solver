@@ -18,7 +18,7 @@ import sys, signal
 class WalkSAT:
     def __init__(self, formula):
 #        self._max_tries = max_tries
-        self._max_flips =  1000
+        self._max_flips =  100 * (formula.num_clauses//len(formula.clauses[-1]))
         self._formula = formula
         self._interpretation = None
         self._sat = False
@@ -32,7 +32,7 @@ class WalkSAT:
         self._tabu_list = []
         print(int(0.01875 * formula.num_vars + 2.8125))
 
-
+    #TODO: La idea més important és reciclar calculs. Aprofitar calculs anteriors, no fer calculs redundants. Aixó se fa creant noves estructures de dades
     #In this implementation we want to minimize num of unsat clauses, global optimum is 0.
     def solve(self):
 #        for _ in range(self._max_tries):
@@ -76,6 +76,7 @@ class WalkSAT:
         return new_interp
 
     def _get_clause_not_satisfied_by_interp(self):#! Hauria de fer que agafes una clausula random, perq sino les clausules del principi tenen preferencia a ser escollides
+        unsat_clauses = []
         for clause in self._formula.clauses:
             length = len(clause)
             for literal in clause:
@@ -84,8 +85,8 @@ class WalkSAT:
                 else:
                     length -= 1
             if length == 0:
-                return clause
-        return None
+                unsat_clauses.append(clause)
+        return choice(unsat_clauses)
 
 
     def _get_vars_in_clause(self, clause):
@@ -161,6 +162,7 @@ class WalkSAT:
                 [str(cl) for cl in self._interpretation]))
         else:
             sys.stdout.write("s IDK\n")
+
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
