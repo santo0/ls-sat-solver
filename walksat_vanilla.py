@@ -4,25 +4,35 @@
 from cnf import CNF
 from random import choice
 from random import randint
+import random
 from copy import copy
 import os
-import sys
+import sys, signal
+import queue
 
 # Agafar fitxer i parsejar-lo
 # Quina estructura de dades?
 # De moment llista de llistes de caracters
+      
 
 
-class GSAT:
-    def __init__(self, max_flips, max_tries, formula):
-        self._max_tries = max_tries
-        self._max_flips = max_flips
+class WalkSAT:
+    def __init__(self, formula):
+#        self._max_tries = max_tries
+        self._max_flips =  1000
         self._formula = formula
         self._interpretation = None
         self._sat = False
 
+        self._count_dict = {}
+        self._iterations = 0
+        self._count_var_dict = {}
+
+
+    #In this implementation we want to minimize num of unsat clauses, global optimum is 0.
     def solve(self):
-        for _ in range(self._max_tries):
+#        for _ in range(self._max_tries):
+        while 1:
             self._interpretation = self._get_random_interpretation()
             for _ in range(self._max_flips):
                 if self._interpretation_satisfies():
@@ -31,14 +41,29 @@ class GSAT:
                 C = self._get_clause_not_satisfied_by_interp()
                 S = self._get_vars_in_clause(C)
                 b, b_var = self._get_var_min_break(S)
-                prob = randint(0, 1) #! Parametizable.
-                if b > 0 and prob:
+                prob = random.random() 
+                if b > 0 and prob < 0.25: #! Parametizable.
                     p = choice(S)
                 else:
                     p = b_var
                 self._interpretation = self._flip_var(p)
+                if tuple(self._interpretation) not in self._count_dict:
+                    self._count_dict[tuple(self._interpretation)] = 1
+                else:
+                    self._count_dict[tuple(self._interpretation)] += 1
+                self._iterations += 1
+
+                if p not in self._count_var_dict:
+                    self._count_var_dict[p] = 1
+                else:
+                    self._count_var_dict[p] += 1
 
         return None
+
+    def _flip_var(self, var):
+        new_interp = copy(self._interpretation) #costos
+        new_interp[var-1] *= -1
+        return new_interp
 
     def _get_clause_not_satisfied_by_interp(self):#! Hauria de fer que agafes una clausula random, perq sino les clausules del principi tenen preferencia a ser escollides
         for clause in self._formula.clauses:
@@ -61,9 +86,9 @@ class GSAT:
         vars_break = {}
         for var in vars:
             vars_break[var] = 0
-        for var in vars:
-            for clause in self._formula.clauses:
-                length = len(clause)
+        for clause in self._formula.clauses:
+            length = len(clause)
+            for var in vars:
                 for literal in clause:
                     if abs(literal) == var:
                         if literal != var:
@@ -81,11 +106,11 @@ class GSAT:
         return vars_break[min_var], min_var
 
 
-#despues - antes
-
-
+    '''
+    O(n) s.t. n us num_clauses
+    '''
     def _get_num_unsat_clauses(self):
-        counter = 0
+        num_unsat_clauses = 0
         for clause in self._formula.clauses:
             length = len(clause)
             for literal in clause:
@@ -94,9 +119,12 @@ class GSAT:
                 else:
                     length -= 1
             if length == 0:
-                counter += 1
-        return counter
+                num_unsat_clauses += 1
+        return num_unsat_clauses
 
+    '''
+    O(n) s.t. n is num_clauses
+    '''
     def _interpretation_satisfies(self):
         for clause in self._formula.clauses:
             length = len(clause)
@@ -109,6 +137,9 @@ class GSAT:
                 return False
         return True
 
+    '''
+    O(n) s.t. n is num_var
+    '''
     def _get_random_interpretation(self):
         return [i if randint(0, 1) else -i for i in range(1, self._formula.num_vars + 1)]
 
@@ -121,8 +152,18 @@ class GSAT:
         else:
             sys.stdout.write("s IDK\n")
 
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    for inp in sorted(solver._count_dict.items(), key=lambda item: item[1])[-10:]:
+        print(inp)
+    for vareto in sorted(solver._count_var_dict.items(), key=lambda item: item[1])[-10:]:
+        print(vareto)
+    print(len(solver._count_dict.items()))
+    print(solver._iterations)
+    sys.exit(0)
 
 if __name__ == "__main__":
+    global solver
     if len(sys.argv) != 2:
         sys.stderr.write("ERROR: Incorrect number of arguments. Given %s. Expected 2.\n" %
                          len(sys.argv))
@@ -131,6 +172,13 @@ if __name__ == "__main__":
     if not os.path.isfile(cnf_path):
         sys.exit("ERROR: CNF file %s does not exist." % cnf_path)
     # "./benchmarks/10_20_3__1.cnf"
-    solver = GSAT(100, 100, CNF(cnf_path))
+    solver = WalkSAT(CNF(cnf_path))
+    signal.signal(signal.SIGINT, signal_handler)
     solver.solve()
     solver.print_output()
+    for inp in sorted(solver._count_dict.items(), key=lambda item: item[1])[-10:]:
+        print(inp)
+    for vareto in sorted(solver._count_var_dict.items(), key=lambda item: item[1])[-10:]:
+        print(vareto)
+    print(len(solver._count_dict.items()))
+    print(solver._iterations)
